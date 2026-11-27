@@ -1,0 +1,37 @@
+pnpm install unified \
+  dompurify \
+  cytoscape \
+  cytoscape-cose-bilkent \
+  remark-math \
+  rehype-mathjax \
+  rehype-katex \
+  @astrojs/markdown-remark \
+  unist-util-visit \
+  hast-util-to-html \
+  hast-util-to-text \
+  vfile \
+  khroma \
+  remark-parse \
+  d3-hierarchy \
+  d3-selection \
+  d3-shape \
+  bezier-js
+
+pnpm install -D @types/d3-selection \
+    "@types/dompurify" \
+    "@types/jest" \
+    "@types/lodash" \
+    "@types/lodash.uppercase" \
+    "@types/node" \
+    "@types/cytoscape" \
+    "@types/nodemon" \
+    "type-fest" \
+    "esbuild" \
+    "esbuild-node-externals" \
+    "jest" \
+    "nodemon" \
+    "rimraf" \
+    "ts-jest" \
+    "typescript" \
+    "wireit"
+

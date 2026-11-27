@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://unpkg.com/tailwindcss@4.0.0-alpha.17/dist/lib.js"></script>
+  </head>
+  <body>
+    <div id="container">{{{htmlcontent}}}</div>
+    <button id="download" onclick="downloadSVG()">Download SVG</button>
+  </body>
+
+  <script>
+    function downloadSVG() {
+      const svg = document.getElementById("container").innerHTML;
+      const blob = new Blob([svg.toString()]);
+      const element = document.createElement("a");
+      element.download = "w3c.svg";
+      element.href = window.URL.createObjectURL(blob);
+      element.click();
+      element.remove();
+    }
+  </script>
+</html>

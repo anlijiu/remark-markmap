@@ -1,0 +1,24 @@
+# 依赖与构建产物
+node_modules
+dist
+coverage
+.wireit
+.render-preview
+graphify-out
+pnpm-lock.yaml
+
+# 生成/临时目录
+.changeset
+tmp
+
+# esbuild 从 build.mts 生成的构建脚本；格式化后会被下次构建覆盖，来回抖动
+packages/*/scripts/build.mjs
+
+# 测试夹具（大体积数据与展示页），格式化只产生噪声 diff
+packages/markmap/test/data.js
+packages/markmap/long.html
+packages/markmap/test/index.html
+
+# Markdown 暂不纳入格式化：中文文档的换行与表格对齐改动噪声大，
+# 需要时单独做一次全量格式化提交。
+*.md

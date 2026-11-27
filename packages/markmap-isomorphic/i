@@ -1,0 +1,33 @@
+pnpm install unified \
+  playwright-core \
+  dompurify \
+  cytoscape \
+  cytoscape-cose-bilkent \
+  remark-math \
+  rehype-mathjax \
+  rehype-katex \
+  @astrojs/markdown-remark \
+  unist-util-visit \
+  hast-util-to-html \
+  hast-util-to-text \
+  vfile \
+  remark-parse \
+  tailwindcss@4.1.8 \
+  d3-selection
+
+pnpm install -D @types/d3-selection \
+    "@types/jest" \
+    "@types/lodash" \
+    "@types/lodash.uppercase" \
+    "@types/node" \
+    "@types/cytoscape" \
+    "@types/nodemon" \
+    "esbuild" \
+    "esbuild-node-externals" \
+    "jest" \
+    "nodemon" \
+    "rimraf" \
+    "ts-jest" \
+    "typescript" \
+    "wireit"
+

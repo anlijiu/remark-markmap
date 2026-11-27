@@ -1,0 +1,54 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  # npm Trusted Publishing 通过 GitHub Actions 的 OIDC 换取短时发布令牌，
+  # 不需要在仓库/环境里保存 NPM_TOKEN。
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      # 先构建：typecheck 依赖各包生成的 dist/types（exports.types 指向它）
+      - name: Build
+        run: pnpm -r build
+
+      - name: Build types
+        run: pnpm -r build:types
+
+      # 发布前跑完整检查，避免把红的状态发出去
+      - name: Check
+        run: pnpm -r typecheck && pnpm -r test
+
+      # Trusted Publishing 需要 npm CLI >= 11.5（或等价的 pnpm 实现），
+      # setup-node 自带的 npm 版本较旧，这里显式升级。
+      - name: Upgrade npm
+        run: npm install -g npm@^11
+
+      # changesets 会按依赖顺序发布（先 @anlijiu/markmap，再另外两个包）。
+      # 三个包需要在 npm 包设置里预先添加 Trusted Publisher（见 README「发布」）。
+      - name: Publish
+        run: pnpm changeset publish
+        env:
+          NPM_CONFIG_PROVENANCE: 'true'

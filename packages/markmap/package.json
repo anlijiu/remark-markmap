@@ -1,0 +1,114 @@
+{
+  "name": "@anlijiu/markmap",
+  "version": "1.0.4",
+  "description": "A code library for render markmap to svg",
+  "module": "./dist/markmap.core.mjs",
+  "types": "./dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/markmap.core.mjs",
+      "default": "./dist/markmap.core.mjs"
+    },
+    "./dist/*": "./dist/*"
+  },
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "!dist/**/*.map",
+    "!dist/tsconfig.tsbuildinfo"
+  ],
+  "scripts": {
+    "start": "wireit",
+    "dev": "wireit",
+    "build": "wireit",
+    "typecheck": "tsc --noEmit",
+    "bench:measurement": "node scripts/benchmark-measurement.mjs",
+    "build:watch": "wireit",
+    "build:types": "wireit",
+    "script:build": "wireit",
+    "test": "tsx --test test/*.test.ts",
+    "test:watch": "tsx --test --watch test/*.test.ts",
+    "clean": "rimraf dist coverage .wireit dist scripts/build.mjs node_modules"
+  },
+  "keywords": [],
+  "author": "anlijiu@gmail.com",
+  "license": "MIT",
+  "wireit": {
+    "start": {
+      "command": "node ./dist",
+      "dependencies": [
+        "script:build",
+        "build"
+      ]
+    },
+    "dev": {
+      "command": "node scripts/build.mjs -d",
+      "dependencies": [
+        "script:build",
+        "build"
+      ]
+    },
+    "build": {
+      "command": "node scripts/build.mjs",
+      "dependencies": [
+        "script:build"
+      ]
+    },
+    "build:types": {
+      "command": "tsc --emitDeclarationOnly --outDir dist/types"
+    },
+    "build:watch": {
+      "command": "node scripts/build.mjs -w",
+      "dependencies": [
+        "script:build"
+      ]
+    },
+    "script:build": {
+      "command": "esbuild scripts/*.mts --outdir=scripts --target=node20 --supported:top-level-await=true --out-extension:.js=.mjs"
+    }
+  },
+  "devDependencies": {
+    "@types/bezier-js": "^4.1.3",
+    "@types/d3-flextree": "^2.1.4",
+    "@types/d3-hierarchy": "^3.1.7",
+    "@types/d3-selection": "^3.0.13",
+    "@types/dompurify": "^3.2.0",
+    "@types/hast": "^3.0.5",
+    "@types/lodash": "^4.17.27",
+    "@types/lodash.uppercase": "^4.3.9",
+    "@types/node": "^26.6.11",
+    "@types/nodemon": "^3.1.1",
+    "@types/stylis": "^4.2.7",
+    "@types/unist": "^3.0.3",
+    "esbuild": "^0.28.2",
+    "esbuild-node-externals": "^2.0.0",
+    "nodemon": "^3.1.14",
+    "rimraf": "^6.1.4",
+    "tsx": "^4.23.15",
+    "type-fest": "^6.0.3",
+    "typescript": "^7.0.2",
+    "wireit": "^0.15.0"
+  },
+  "dependencies": {
+    "@chenglou/pretext": "^1.0.0",
+    "bezier-js": "^6.1.4",
+    "cose-base": "2.2.0",
+    "d3-flextree": "^2.1.2",
+    "d3-hierarchy": "^3.1.3",
+    "d3-selection": "^3.0.1",
+    "hast-util-to-html": "^9.0.7",
+    "hast-util-to-text": "^4.0.5",
+    "khroma": "^2.1.0",
+    "stylis": "^4.4.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/anlijiu/remark-markmap.git",
+    "directory": "packages/markmap"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

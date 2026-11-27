@@ -1,0 +1,20 @@
+#!/bin/bash
+# 发布流程：检查 -> 构建 -> 发布。
+#
+# 版本号请通过 `pnpm changeset` 记录变更、`pnpm version-packages` 生成，
+# 不要再手工改 package.json 的 version 字段。
+set -euo pipefail
+
+# 发布前跑完整检查，避免把红的状态发出去（typecheck + test）
+pnpm check
+
+pnpm -r build
+pnpm -r build:types
+
+# npm provenance（构建来源证明）需要 CI 的 OIDC 环境，本地发布会失败，
+# 因此在 CI 中（如 GitHub Actions）自动启用，本地保持关闭。
+if [ -n "${CI:-}" ]; then
+  export NPM_CONFIG_PROVENANCE=true
+fi
+
+pnpm changeset publish

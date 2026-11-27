@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  schedule:
+    # 每周一 03:00 UTC 做一次依赖巡检
+    - cron: '0 3 * * 1'
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm -r build
+
+      # 类型声明是 exports.types 的产物，必须先于 typecheck 生成
+      - name: Build types
+        run: pnpm -r build:types
+
+      # Phase 1 完成后已归零（见 docs/baseline.md），因此设为阻塞
+      - name: Typecheck
+        run: pnpm -r typecheck
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Test
+        run: pnpm -r test
+
+  dependency-audit:
+    # 仅定时任务触发，避免每次 push 都跑（网络耗时且噪声大）
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Outdated
+        run: pnpm outdated -r
+        continue-on-error: true
+
+      - name: Audit
+        run: pnpm audit --audit-level high
+        continue-on-error: true

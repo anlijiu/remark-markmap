@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body>
+  <div id="left_right"></div>
+  <div id="up"></div>
+  <div id="down"></div>
+  <div id="left"></div>
+  <div id="right"></div>
+  <div id="radial"></div>
+  <script src="../dist/markmap.js"></script>
+  <script type="module">
+    import {root, longRoot, bugLeftRightSingleChain, frontmatter} from "./data.js";
+    let up = document.getElementById("up");
+    let down = document.getElementById("down");
+    let left = document.getElementById("left");
+    let right = document.getElementById("right");
+    let left_right = document.getElementById("left_right");
+    let radial = document.getElementById("radial");
+
+    const {content, data: frontmatterData, isEmpty, excerpt} = frontmatter;
+    const opts = {
+      theme: "11",
+      border: "11123000",
+      shape: "12345000",
+      linkshape: "12312300",
+      //linkshape: "44444444",
+    };
+
+    let data = bugLeftRightSingleChain; // longRoot;
+    data = longRoot;
+    //const data = root;
+    console.log("2222222222222222222222", data);
+    let tree = window.markmap.buildTree(data.children, opts);
+
+    window.markmap.render(`a`, tree, opts).then((obj) => {
+      const {svg} = obj;
+      console.log("444", svg);
+      up.innerHTML = svg;
+    });
+
+    opts.theme = "12";
+    let treedown = window.markmap.buildTree(data.children);
+    window.markmap.render(`b`, treedown, opts).then((obj) => {
+      const {svg} = obj;
+      console.log("444", svg);
+      down.innerHTML = svg;
+    });
+
+    opts.theme = "03";
+    window.markmap.render(`c`, tree, opts).then((obj) => {
+      const {svg} = obj;
+      console.log("444", svg);
+      left.innerHTML = svg;
+    });
+
+    opts.theme = "14";
+    window.markmap.render(`d`, tree, opts).then((obj) => {
+      const {svg} = obj;
+      console.log("444", svg);
+      right.innerHTML = svg;
+    });
+
+    opts.theme = "05";
+    window.markmap.render(`e`, tree, opts).then((obj) => {
+      const {svg} = obj;
+      console.log("444", svg);
+      left_right.innerHTML = svg;
+    });
+
+    opts.theme = "16";
+    window.markmap.render(`f`, tree, opts).then((obj) => {
+      const {svg} = obj;
+      console.log("444", svg);
+      radial.innerHTML = svg;
+    });
+  </script>
+</body>
+
+</html>

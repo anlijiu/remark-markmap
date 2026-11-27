@@ -1,0 +1,103 @@
+{
+  "name": "@anlijiu/markmap-isomorphic",
+  "version": "1.0.3",
+  "description": "Transform @anlijiu/markmap diagrams in the browser or Node.js",
+  "main": "dist/index.js",
+  "types": "./dist/types/index.d.ts",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "browser": "./dist/browser.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "start": "wireit",
+    "dev": "wireit",
+    "build": "wireit",
+    "build:types": "wireit",
+    "typecheck": "tsc --noEmit",
+    "build:watch": "wireit",
+    "script:build": "wireit",
+    "test": "node --test dist/test.js",
+    "clean": "rimraf dist coverage .wireit dist scripts/build.mjs node_modules"
+  },
+  "keywords": [],
+  "author": "anlijiu@gmail.com",
+  "license": "MIT",
+  "wireit": {
+    "start": {
+      "command": "node ./dist",
+      "dependencies": [
+        "script:build",
+        "build"
+      ]
+    },
+    "dev": {
+      "command": "node scripts/build.mjs -d",
+      "dependencies": [
+        "script:build",
+        "build"
+      ]
+    },
+    "build": {
+      "command": "node scripts/build.mjs",
+      "dependencies": [
+        "script:build"
+      ]
+    },
+    "build:types": {
+      "command": "tsc --emitDeclarationOnly --outDir dist/types"
+    },
+    "build:watch": {
+      "command": "node scripts/build.mjs -w",
+      "dependencies": [
+        "script:build"
+      ]
+    },
+    "script:build": {
+      "command": "esbuild scripts/*.mts --outdir=scripts --target=node18 --supported:top-level-await=true --out-extension:.js=.mjs"
+    }
+  },
+  "devDependencies": {
+    "@types/d3-selection": "^3.0.13",
+    "@types/lodash": "^4.17.27",
+    "@types/lodash.uppercase": "^4.3.9",
+    "@types/node": "^26.6.11",
+    "@types/nodemon": "^3.1.1",
+    "esbuild": "^0.28.2",
+    "esbuild-node-externals": "^2.0.0",
+    "nodemon": "^3.1.14",
+    "playwright-core": "^1.65.1",
+    "rimraf": "^6.1.4",
+    "typescript": "^7.0.2",
+    "wireit": "^0.15.0"
+  },
+  "dependencies": {
+    "@anlijiu/markmap": "workspace:*"
+  },
+  "peerDependencies": {
+    "playwright-core": "^1.65.1"
+  },
+  "peerDependenciesMeta": {
+    "playwright-core": {
+      "optional": true
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/anlijiu/remark-markmap.git",
+    "directory": "packages/markmap-isomorphic"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "index.html",
+    "!dist/**/*.map",
+    "!dist/tsconfig.tsbuildinfo"
+  ]
+}

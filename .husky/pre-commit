@@ -1,0 +1,23 @@
+#!/usr/bin/env sh
+# 只处理暂存文件：eslint --fix 先、prettier --write 后（prettier 有最终话语权），
+# 最后把钩子改动过的文件重新暂存。顺序与原因见 docs/gates.md。
+set -e
+
+files=$(git diff --cached --name-only --diff-filter=ACMR)
+[ -z "$files" ] && exit 0
+
+# eslint 只覆盖 packages/*/src 与 packages/*/test 下的 TS（见 eslint.config.js）
+echo "$files" | grep -E '^packages/[^/]+/(src|test)/.*\.ts$' | while IFS= read -r file; do
+  [ -f "$file" ] || continue
+  ./node_modules/.bin/eslint --fix --no-warn-ignored "$file"
+done
+
+echo "$files" | while IFS= read -r file; do
+  [ -f "$file" ] || continue
+  ./node_modules/.bin/prettier --write --ignore-unknown "$file"
+done
+
+echo "$files" | while IFS= read -r file; do
+  [ -f "$file" ] || continue
+  git add "$file"
+done

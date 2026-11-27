@@ -1,0 +1,11 @@
+src/
+scripts
+tsconfig.json
+i
+b
+*.log
+*.lock
+.wireit
+
+# 不发布 sourcemap（体积约减 2/3）
+*.map

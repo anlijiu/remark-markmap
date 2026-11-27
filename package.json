@@ -1,0 +1,56 @@
+{
+  "name": "remark-markmap-monorepo",
+  "version": "1.0.1",
+  "description": "remark plugin transform markmap to svg",
+  "main": "index.mjs",
+  "type": "module",
+  "scripts": {
+    "start": "node index.mjs",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "prepare": "husky",
+    "check": "pnpm -r typecheck && pnpm -r test",
+    "changeset": "changeset",
+    "version-packages": "changeset version",
+    "release": "pnpm -r build && pnpm -r build:types && changeset publish",
+    "preview": "node scripts/render-preview.mjs"
+  },
+  "private": true,
+  "keywords": [],
+  "author": "anlijiu",
+  "license": "MIT",
+  "dependencies": {
+    "@anlijiu/markmap": "workspace:*",
+    "@anlijiu/markmap-isomorphic": "workspace:*",
+    "@anlijiu/remark-markmap": "workspace:*",
+    "dayjs": "^1.11.23"
+  },
+  "devDependencies": {
+    "@astrojs/markdown-remark": "^7.3.10",
+    "@changesets/cli": "^3.0.3",
+    "@commitlint/cli": "21.2.4",
+    "@commitlint/config-conventional": "21.2.4",
+    "@playwright/test": "^1.65.1",
+    "eslint": "^10.15.0",
+    "husky": "9.1.7",
+    "mustache": "^4.2.0",
+    "playwright-core": "^1.65.1",
+    "prettier": "3.10.1",
+    "rehype-stringify": "^10.0.1",
+    "remark-gfm": "^4.0.1",
+    "remark-parse": "^11.0.0",
+    "remark-rehype": "^11.1.2",
+    "stringify-entities": "^4.0.5",
+    "tailwindcss": "4.3.5",
+    "tsx": "^4.23.15",
+    "typescript": "npm:@typescript/typescript6@^6.0.2",
+    "typescript-eslint": "^8.74.0",
+    "unified": "^11.0.5"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/anlijiu/remark-markmap.git"
+  }
+}

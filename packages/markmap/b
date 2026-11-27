@@ -1,0 +1,5 @@
+#!/bin/bash
+
+pnpm build
+
+cp dist/markmap.core.mjs ~/workspace/js/astro-blog/3rdparty/markmap/markmap.js
