@@ -1,6 +1,6 @@
 {
   "name": "@anlijiu/markmap-isomorphic",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Transform @anlijiu/markmap diagrams in the browser or Node.js",
   "main": "dist/index.js",
   "types": "./dist/types/index.d.ts",

@@ -1,7 +1,16 @@
 import esbuild, { BuildOptions } from 'esbuild'
 import nodemon from 'nodemon'
 import { parseArgs } from 'util'
+import { readFileSync } from 'node:fs'
 import { nodeExternalsPlugin } from 'esbuild-node-externals'
+
+const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as {
+  dependencies?: Record<string, string>
+}
+
+// ESM 产物交给消费者的 bundler 处理，运行时依赖一律外置。
+// 子路径导入（如 @chenglou/pretext/rich-inline）也要显式匹配，否则会被打进产物。
+const externalDeps = Object.keys(pkg.dependencies ?? {}).flatMap((dep) => [dep, `${dep}/*`])
 
 /**
  * 我们不需要 cjs (不在node环境中使用)
@@ -46,7 +55,7 @@ const esmBuildConfig: BuildOptions = {
   keepNames: true,
   format: 'esm',
   sourcemap: 'external',
-  external: ['require', 'fs', 'path'],
+  external: ['require', 'fs', 'path', ...externalDeps],
   metafile: false,
   splitting: true,
   // globalName: '__esbuild_esm_markmap',

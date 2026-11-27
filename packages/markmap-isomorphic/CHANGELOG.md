@@ -1,5 +1,12 @@
 # @anlijiu/markmap-isomorphic
 
+## 1.0.4
+
+### Patch Changes
+
+- Updated dependencies
+  - @anlijiu/markmap@1.0.5
+
 ## 1.0.3
 
 ### Patch Changes

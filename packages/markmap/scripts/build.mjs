@@ -2,6 +2,9 @@
 import esbuild from "esbuild";
 import nodemon from "nodemon";
 import { parseArgs } from "util";
+import { readFileSync } from "node:fs";
+const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
+const externalDeps = Object.keys(pkg.dependencies ?? {}).flatMap((dep) => [dep, `${dep}/*`]);
 const iifeBuildConfig = {
   entryPoints: { markmap: "src/index.ts" },
   outdir: "dist",
@@ -37,7 +40,7 @@ const esmBuildConfig = {
   keepNames: true,
   format: "esm",
   sourcemap: "external",
-  external: ["require", "fs", "path"],
+  external: ["require", "fs", "path", ...externalDeps],
   metafile: false,
   splitting: true,
   // globalName: '__esbuild_esm_markmap',

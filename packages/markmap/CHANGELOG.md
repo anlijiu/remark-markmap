@@ -1,5 +1,11 @@
 # @anlijiu/markmap
 
+## 1.0.5
+
+### Patch Changes
+
+- ESM 产物（`dist/markmap.core.mjs`）改为 external：第三方运行时依赖不再内联，交由消费者的 bundler 解析并 tree-shake。产物从 812 KB 降到约 79 KB。IIFE 产物（`dist/markmap.js`）保持全量打包，供浏览器 `<script>` 注入。
+
 ## 1.0.4
 
 ### Patch Changes
