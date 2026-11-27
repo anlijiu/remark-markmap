@@ -1,5 +1,11 @@
 # @anlijiu/markmap
 
+## 1.0.6
+
+### Patch Changes
+
+- Radial 布局修复：在 CoSE 结果上补两步后处理 —— 父子节点中心距不足时沿连线方向推开子树（`RADIAL_ARM_GAP`），再用网格分桶做矩形分离（`resolveOverlaps`）。`complex_nodes` 场景的节点重叠从 7 处降为 0，同时保持 CoSE 的紧凑构图，不再出现「臂太短、节点互压」。
+
 ## 1.0.5
 
 ### Patch Changes

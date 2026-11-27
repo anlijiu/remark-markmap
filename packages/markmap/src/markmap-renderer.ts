@@ -259,8 +259,136 @@ function layoutMindmap(node: MindmapNode) {
     layoutNode.y = rect.getCenterY()
   }
 
+  enforceMinArmLength(nodes, links, RADIAL_ARM_GAP)
+  resolveOverlaps(nodes)
+
   return { nodes, links }
 }
+
+/**
+ * CoSE 的 incremental 微调会把节点往中心收缩，父子节点的中心距常常小于两者
+ * 尺寸之和 —— 视觉上就是「臂太短」，连线和节点挤在一起。
+ *
+ * 这里按深度从浅到深，对每条父子边检查中心距；不足时沿连线方向把子节点及其
+ * 整棵子树推远，保持子树内部相对位置不变。位移记在节点上统一应用，避免逐条边
+ * 遍历子树（那会退化成 O(n²)）。
+ */
+function enforceMinArmLength(nodes: RadialLayoutNode[], links: RadialLayoutLink[], minGap: number) {
+  // 边的顺序是后序遍历（深→浅），推子树必须先处理浅层，按父节点深度排序
+  const ordered = [...links].sort((a, b) => a.depth - b.depth)
+  const shifts = new Map<number, { x: number; y: number }>()
+
+  for (const link of ordered) {
+    const { source, target } = link
+    const parentShift = shifts.get(source.id) ?? { x: 0, y: 0 }
+    const sx = source.x + parentShift.x
+    const sy = source.y + parentShift.y
+    const tx = target.x + parentShift.x
+    const ty = target.y + parentShift.y
+
+    const dx = tx - sx
+    const dy = ty - sy
+    const distance = Math.hypot(dx, dy)
+    if (distance < 1e-6) {
+      continue
+    }
+    const ux = dx / distance
+    const uy = dy / distance
+    // 两个矩形沿连线方向的半投影之和
+    const reach =
+      (Math.abs(ux) * (source.width + target.width)) / 2 +
+      (Math.abs(uy) * (source.height + target.height)) / 2
+    const needed = reach + minGap
+    if (distance >= needed) {
+      continue
+    }
+    const push = needed - distance
+    shifts.set(target.id, { x: parentShift.x + ux * push, y: parentShift.y + uy * push })
+  }
+
+  for (const node of nodes) {
+    const shift = shifts.get(node.id)
+    if (shift) {
+      node.x += shift.x
+      node.y += shift.y
+    }
+  }
+}
+
+/**
+ * CoSE 的 incremental 微调会把节点往中心收缩，偶尔压出重叠（宽节点尤其明显）。
+ * 这里在布局结果上做最小位移的矩形分离：只把互相重叠的节点沿重叠较小的轴
+ * 各推开一半，整体仍保持 CoSE 的紧凑形态。
+ *
+ * 用网格把候选对限制在相邻格子内，避免 O(n²)——10000 节点也只需线性扫描。
+ */
+function resolveOverlaps(nodes: RadialLayoutNode[], padding = 26, maxIterations = 60) {
+  if (nodes.length < 2) {
+    return
+  }
+  const maxWidth = nodes.reduce((max, n) => Math.max(max, n.width), 0)
+  const maxHeight = nodes.reduce((max, n) => Math.max(max, n.height), 0)
+  const cellSize = Math.max(maxWidth, maxHeight) + padding * 2
+  if (!Number.isFinite(cellSize) || cellSize <= 0) {
+    return
+  }
+  const cellKey = (cx: number, cy: number) => `${cx},${cy}`
+
+  for (let iteration = 0; iteration < maxIterations; iteration++) {
+    const grid = new Map<string, RadialLayoutNode[]>()
+    for (const node of nodes) {
+      const key = cellKey(Math.floor(node.x / cellSize), Math.floor(node.y / cellSize))
+      const bucket = grid.get(key)
+      if (bucket) {
+        bucket.push(node)
+      } else {
+        grid.set(key, [node])
+      }
+    }
+
+    let moved = false
+    const visited = new Set<string>()
+    for (const node of nodes) {
+      const cx = Math.floor(node.x / cellSize)
+      const cy = Math.floor(node.y / cellSize)
+      for (let dx = -1; dx <= 1; dx++) {
+        for (let dy = -1; dy <= 1; dy++) {
+          const bucket = grid.get(cellKey(cx + dx, cy + dy))
+          if (!bucket) continue
+          for (const other of bucket) {
+            if (other === node) continue
+            const pairKey = node.id < other.id ? `${node.id}:${other.id}` : `${other.id}:${node.id}`
+            if (visited.has(pairKey)) continue
+            visited.add(pairKey)
+
+            const overlapX = (node.width + other.width) / 2 + padding - Math.abs(other.x - node.x)
+            const overlapY = (node.height + other.height) / 2 + padding - Math.abs(other.y - node.y)
+            if (overlapX <= 0 || overlapY <= 0) continue
+
+            moved = true
+            // 沿重叠较小的轴分离，位移最小
+            if (overlapX < overlapY) {
+              const shift = (overlapX / 2 + 0.01) * (other.x >= node.x ? 1 : -1)
+              node.x -= shift
+              other.x += shift
+            } else {
+              const shift = (overlapY / 2 + 0.01) * (other.y >= node.y ? 1 : -1)
+              node.y -= shift
+              other.y += shift
+            }
+          }
+        }
+      }
+    }
+
+    if (!moved) {
+      break
+    }
+  }
+}
+
+/** 父子节点之间保留的最小臂长（中心距还需加上两者在连线方向上的半尺寸） */
+const RADIAL_ARM_GAP = 100
 
 function positionNodes(nodes: RadialLayoutNode[]) {
   nodes.forEach((node) => {

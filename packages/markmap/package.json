@@ -1,6 +1,6 @@
 {
   "name": "@anlijiu/markmap",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "A code library for render markmap to svg",
   "module": "./dist/markmap.core.mjs",
   "types": "./dist/types/index.d.ts",
