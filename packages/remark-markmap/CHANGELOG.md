@@ -1,5 +1,13 @@
 # @anlijiu/remark-markmap
 
+## 1.0.6
+
+### Patch Changes
+
+- Updated dependencies
+  - @anlijiu/markmap@1.0.7
+  - @anlijiu/markmap-isomorphic@1.0.6
+
 ## 1.0.5
 
 ### Patch Changes
