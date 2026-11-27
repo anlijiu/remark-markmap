@@ -7,6 +7,8 @@
  * 用法：
  *   node scripts/render-preview.mjs                 # 渲染全部方向
  *   node scripts/render-preview.mjs --only=radial   # 只渲染某个方向
+ *   node scripts/render-preview.mjs --file=doc.md   # 用自定义 markdown 替换内置样例
+ *   node scripts/render-preview.mjs --complex       # 渲染内置 complex_nodes 样例（自带 frontmatter）
  *   node scripts/render-preview.mjs --keep-html     # 保留中间 HTML（默认也保留）
  *
  * 环境变量：
@@ -369,7 +371,7 @@ Flow: initial check -> fix key issues -> re-check -> iterate until key issues ar
 Note: these tools are read-only analyzers; you still need to apply fixes manually. Pass precise file paths, not broad directories.
 `
 
-function buildMarkdown(direction) {
+function buildMarkdown(direction, customMarkdown) {
   // theme 编码：第一位 colorscheme，第二位 direction
   const theme = `0${direction}`
   return `~~~ markmap
@@ -379,7 +381,7 @@ border: "11110000"
 shape: "10000000"
 linkshape: "00000000"
 ---
-${SAMPLE_NODES}~~~
+${customMarkdown ?? SAMPLE_NODES}~~~
 `
 }
 
@@ -448,9 +450,27 @@ ${cards}
 
 async function main() {
   const onlyArg = process.argv.find((a) => a.startsWith('--only='))
-  const only = onlyArg ? onlyArg.split('=')[1] : undefined
+  const only = onlyArg ? onlyArg.split('=').slice(1).join('=') : undefined
+  const fileArg = process.argv.find((a) => a.startsWith('--file='))
+  let customMarkdown
+  if (fileArg) {
+    const filePath = path.resolve(fileArg.split('=').slice(1).join('='))
+    customMarkdown = fs.readFileSync(filePath, 'utf8')
+    console.log(`自定义样例: ${filePath}`)
+  }
+  // complex_nodes 自带 frontmatter（theme/border/shape/linkshape），直接作为
+  // markmap 代码块内容使用，不要再包一层脚本的 frontmatter。
+  const useComplex = process.argv.includes('--complex')
+  if (useComplex && (fileArg || only)) {
+    console.error('--complex 不能与 --file / --only 同时使用')
+    process.exit(1)
+  }
 
-  const targets = only ? DIRECTIONS.filter((d) => d.name === only) : DIRECTIONS
+  const targets = useComplex
+    ? [{ value: 6, name: 'complex', label: 'Complex（complex_nodes，radial）' }]
+    : only
+      ? DIRECTIONS.filter((d) => d.name === only)
+      : DIRECTIONS
   if (targets.length === 0) {
     console.error(`未知方向: ${only}。可选: ${DIRECTIONS.map((d) => d.name).join(', ')}`)
     process.exit(1)
@@ -468,10 +488,19 @@ async function main() {
 
   for (const direction of targets) {
     const started = Date.now()
-    const htmlPath = path.join(OUT_DIR, `${direction.name}.html`)
-    const pngPath = path.join(OUT_DIR, `${direction.name}.png`)
+    // 自定义样例单独命名，避免覆盖内置样例的预览产物
+    const name = useComplex
+      ? 'complex'
+      : customMarkdown
+        ? `${direction.name}-custom`
+        : direction.name
+    const htmlPath = path.join(OUT_DIR, `${name}.html`)
+    const pngPath = path.join(OUT_DIR, `${name}.png`)
     try {
-      const body = await renderToHtml(buildMarkdown(direction.value), executablePath)
+      const markdown = useComplex
+        ? `~~~ markmap\n${complex_nodes}~~~\n`
+        : buildMarkdown(direction.value, customMarkdown)
+      const body = await renderToHtml(markdown, executablePath)
       fs.writeFileSync(
         htmlPath,
         `<!doctype html><html><head><meta charset="utf-8"></head>
@@ -482,7 +511,7 @@ async function main() {
       console.log(
         `✓ ${direction.label.padEnd(28)} ${(size / 1024).toFixed(1)}kB  ${Date.now() - started}ms`,
       )
-      results.push(direction)
+      results.push({ ...direction, name })
     } catch (error) {
       failed++
       console.error(`✗ ${direction.label}`)

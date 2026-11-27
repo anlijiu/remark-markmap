@@ -1,7 +1,7 @@
 import { toHex } from 'khroma'
 import invert from './theme/color/invert'
 import type { HexColor } from './theme/color/invert'
-import { createText } from './text'
+import { createText, wrapWidthFor } from './text'
 import type { Point, D3Element, FilledMindMapNode, MindmapDB } from './types'
 import db from './db'
 import { nodeType } from './types'
@@ -287,9 +287,10 @@ export const drawNode = function (
   const fontSize = theme.fontSize(node.level)
   const description = node.descr?.replace(/(<br\/*>)/g, '\n') ?? ''
   const contents = node.contents as any
+  // 换行预算按字号取值，node.width 在此之后才会根据文本实测宽高重算
   const textResult = createText(textElem, description, contents, {
     useHtmlLabels: htmlLabels,
-    width: node.width,
+    width: wrapWidthFor(fontSize),
     classes: 'mindmap-node-label',
     fontFamily: theme.defaultFontFamily,
     fontSize,

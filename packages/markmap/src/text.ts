@@ -27,6 +27,17 @@ import { log } from './logger'
 const DEFAULT_FONT_FAMILY = '"trebuchet ms", verdana, arial, sans-serif'
 const DEFAULT_LINE_HEIGHT_EM = 1.1
 
+/**
+ * 节点内文本的换行预算：随字号缩放（约 10em），并做上下限保护。
+ *
+ * 之前写死 200px，与字号无关 —— 28px 的节点一行只装 7 个汉字，38px 的只装 5 个，
+ * 节点被切得又窄又高；深层节点字号小，反而比浅层更宽。按 10em 缩放后各层级
+ * 每行约 10 个汉字（拉丁文约 20 字符），观感一致。
+ */
+export function wrapWidthFor(fontSize: number): number {
+  return Math.min(480, Math.max(160, Math.round(fontSize * 10)))
+}
+
 type LabelMeasurement = {
   height: number
   usedPretext: boolean
@@ -94,13 +105,22 @@ function measureWordWidth(
   )
 }
 
+/**
+ * 把一个放不下的不可分文本片段按字素硬切到多行。
+ *
+ * @param word - 片段所属的词，决定测量用的字体样式
+ * @param content - 要切的文本：必须传「本行的片段文本」而不是整个词的内容，
+ *   因为 break:'normal' 下行可能从条目中间开始（续行），从词首重切会与后续
+ *   循环输出的行重复。
+ */
 function splitOversizedWordWithPretext(
   word: MarkdownWord,
+  content: string,
   width: number,
   fontSize: number,
   fontFamily: string,
 ): PretextWrappedLine[] {
-  const graphemes = splitTextToGraphemes(word.content)
+  const graphemes = splitTextToGraphemes(content)
   if (graphemes.length === 0) return []
 
   const measure = (text: string) => measureWordWidth(word, fontSize, fontFamily, text)
@@ -173,7 +193,10 @@ function createRichInlineItems(
   fontFamily: string,
 ): RichInlineItem[] {
   return line.words.map((word, index) => ({
-    break: 'never',
+    // break:'normal' 让 pretext 使用它内置的 Unicode 断行器（UAX#14，含 CJK 逐字
+    // 断行与避头尾禁则）；之前用 'never' 会让整段文本变成不可分的原子，超宽后只能
+    // 按字素硬切，表现为英文断词、标点落错行。
+    break: 'normal',
     font: createCanvasFont(word, fontSize, fontFamily),
     text: index === 0 ? word.content : ` ${word.content}`,
   }))
@@ -205,9 +228,21 @@ function layoutTextLineWithPretext(
       })),
       width: materializedLine.width,
     }
-    if (nextLine.width > width && nextLine.fragments.length === 1) {
+    // break:'normal' 下 pretext 自己的断行会给出亚像素超宽的行（如 280.0012 > 280，
+    // 是度量浮点累加的误差，行本身是合法的）；这个守卫原本服务于 break:'never'
+    // （单 fragment 超宽 = 整个词不可分），现在只在「明显超宽且单 fragment」——
+    // 即内部没有断行机会的超长词（长 URL 段、长数字串等）——时才按字素硬切。
+    // 容差内的超宽行直接接受，否则每行都会误触发重切并随循环重复输出。
+    const oversizedTolerance = Math.max(1, width * 0.01)
+    if (nextLine.width > width + oversizedTolerance && nextLine.fragments.length === 1) {
       wrappedLines.push(
-        ...splitOversizedWordWithPretext(nextLine.fragments[0].word, width, fontSize, fontFamily),
+        ...splitOversizedWordWithPretext(
+          nextLine.fragments[0].word,
+          nextLine.fragments[0].text,
+          width,
+          fontSize,
+          fontFamily,
+        ),
       )
     } else {
       wrappedLines.push(nextLine)
@@ -248,12 +283,17 @@ export function measureTextLineWithPretext(
  * @returns The created tspan element.
  */
 function createTspan(textElement: D3Element, lineIndex: number, lineHeight: number) {
-  return textElement
-    .append('tspan')
-    .attr('class', 'text-outer-tspan')
-    .attr('x', 0)
-    .attr('y', lineIndex * lineHeight - 0.1 + 'em')
-    .attr('dy', lineHeight + 'em')
+  return (
+    textElement
+      .append('tspan')
+      .attr('class', 'text-outer-tspan')
+      .attr('x', 0)
+      // 不能给 tspan 设绝对 y：绝对坐标会无视 text 元素自身的 y，让 createFormattedText
+      // 里的多个文本块（文本 + 行内代码/图片/HTML 交替时）全部叠在第一块的位置。
+      // 改用 dy 相对链式定位。旧实现同时带 y 与 dy，实际基线是 y+dy
+      // （首行 = 1em，其后每行再 +1em）；这里保持每行的基线偏移不变。
+      .attr('dy', (lineIndex === 0 ? lineHeight - 0.1 : lineHeight) + 'em')
+  )
 }
 
 /**
@@ -596,6 +636,10 @@ function createFormattedText(
           maxWidth = Math.max(maxWidth, preparedLine.width)
         }
         y += measuredText.height
+        // canvas 度量比 SVG 实际渲染偏窄（实测约 3%，会出现 207px 的「200px」行），
+        // 渲染完成后用真实 bbox 校准，避免节点背景按测量宽度绘制导致文字溢出。
+        const renderedBBox = textElement.node().getBBox()
+        maxWidth = Math.max(maxWidth, renderedBBox.width)
       } catch (error) {
         log.warn('pretext layout failed, falling back to DOM text rendering', error)
         usedPretext = false

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import { measureTextLineWithPretext } from '../src/text.ts'
+import { measureTextLineWithPretext, wrapWidthFor } from '../src/text.ts'
 import type { MarkdownTextLine } from '../src/types.js'
 
 class FakeCanvasRenderingContext2D {
@@ -97,4 +97,73 @@ test('measureTextLineWithPretext limits oversized single tokens by splitting gra
   assert.ok(measured.lines.length > 1)
   assert.equal(renderMeasuredContent(measured), 'supercalifragilisticexpialidocious')
   assert.ok(measured.lines.every((wrappedLine) => wrappedLine.width <= 50))
+})
+
+// 以下为 break:'normal' 后 pretext 原生断行器（UAX#14）的行为测试：
+// 词级断行、CJK 逐字断行、避头尾禁则。FakeCanvas 以 CJK=16px、Latin≈8.8px 近似。
+
+test('measureTextLineWithPretext breaks CJK text per character without kinsoku violations', () => {
+  const content = '第一句内容比较长需要折行显示。下一句从这里继续写更多内容直到换行'
+  const line: MarkdownTextLine = {
+    type: 'text_line',
+    words: [{ content, type: 'normal' }],
+  }
+
+  const measured = measureTextLineWithPretext(line, 200, 16)
+
+  assert.ok(measured.lines.length > 1)
+  assert.equal(renderMeasuredContent(measured), content)
+  assert.ok(measured.lines.every((wrappedLine) => wrappedLine.width <= 200))
+  // 禁则：句号、逗号等闭类标点不能出现在行首
+  for (const rendered of renderMeasuredLines(measured)) {
+    assert.doesNotMatch(rendered, /^[。，、；：？！）】」》]/)
+  }
+})
+
+test('measureTextLineWithPretext breaks latin text at word boundaries', () => {
+  const content = 'the quick brown fox jumps over the lazy dog'
+  const line: MarkdownTextLine = {
+    type: 'text_line',
+    words: [{ content, type: 'normal' }],
+  }
+
+  const measured = measureTextLineWithPretext(line, 200, 16)
+  const renderedLines = renderMeasuredLines(measured)
+
+  assert.ok(measured.lines.length > 1)
+  assert.equal(renderedLines.join(' ').replace(/\s+/g, ' ').trim(), content)
+  assert.ok(measured.lines.every((wrappedLine) => wrappedLine.width <= 200))
+  // 每行都以完整单词收尾（不把单词切成两半）
+  for (const rendered of renderedLines) {
+    const words = rendered.trim().split(' ')
+    assert.ok(
+      words.every((word) => content.split(' ').includes(word)),
+      `行内出现被切断的词: ${rendered}`,
+    )
+  }
+})
+
+test('measureTextLineWithPretext keeps closing brackets off line starts when wrapping brackets', () => {
+  const content = '括号测试（这里是括号内的很长内容需要换行的时候看看左括号会不会留在行尾）完毕'
+  const line: MarkdownTextLine = {
+    type: 'text_line',
+    words: [{ content, type: 'normal' }],
+  }
+
+  const measured = measureTextLineWithPretext(line, 200, 16)
+
+  assert.ok(measured.lines.length > 1)
+  assert.equal(renderMeasuredContent(measured), content)
+  for (const rendered of renderMeasuredLines(measured)) {
+    assert.doesNotMatch(rendered, /^[）」』】]/, `闭括号出现在行首: ${rendered}`)
+    assert.doesNotMatch(rendered, /[（「『【]$/, `开括号出现在行尾: ${rendered}`)
+  }
+})
+
+test('wrapWidthFor scales with font size and clamps to sane bounds', () => {
+  assert.equal(wrapWidthFor(16), 160)
+  assert.equal(wrapWidthFor(28), 280)
+  assert.equal(wrapWidthFor(38), 380)
+  assert.equal(wrapWidthFor(50), 480) // 上限保护
+  assert.equal(wrapWidthFor(10), 160) // 下限保护
 })
