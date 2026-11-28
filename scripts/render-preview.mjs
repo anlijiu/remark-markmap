@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * 渲染预览：把所有布局方向各渲染一遍，输出 HTML + PNG 到 .render-preview/。
+ * 渲染预览：把所有布局方向各渲染一遍，输出 HTML + PNG + SVG 到 .render-preview/。
  *
  * 用途：每次改动渲染相关代码后跑一次，肉眼过一遍所有方向，避免回归。
  *
@@ -408,10 +408,22 @@ async function renderToHtml(markdown, executablePath) {
   return file.value
 }
 
-async function screenshot(browser, htmlPath, pngPath) {
+/** 截图并顺手落一份独立 SVG（从渲染好的页面里取最外层 svg 元素）。 */
+async function screenshot(browser, htmlPath, pngPath, svgPath) {
   const page = await browser.newPage({ viewport: { width: 1400, height: 1000 } })
   await page.goto('file://' + htmlPath)
   await page.waitForTimeout(400)
+  // 取文档里第一个顶层 svg（即 markmap 图），补 xmlns 保证独立打开可渲染
+  const svg = await page.evaluate(() => {
+    const el = document.querySelector('svg')
+    if (!el) return ''
+    el.setAttribute('xmlns', 'http://www.w3.org/2000/svg')
+    el.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink')
+    return el.outerHTML
+  })
+  if (svg) {
+    fs.writeFileSync(svgPath, `<?xml version="1.0" encoding="UTF-8"?>\n${svg}\n`)
+  }
   await page.screenshot({ path: pngPath, fullPage: true })
   await page.close()
 }
@@ -496,6 +508,7 @@ async function main() {
         : direction.name
     const htmlPath = path.join(OUT_DIR, `${name}.html`)
     const pngPath = path.join(OUT_DIR, `${name}.png`)
+    const svgPath = path.join(OUT_DIR, `${name}.svg`)
     try {
       const markdown = useComplex
         ? `~~~ markmap\n${complex_nodes}~~~\n`
@@ -506,7 +519,7 @@ async function main() {
         `<!doctype html><html><head><meta charset="utf-8"></head>
 <body style="margin:0;padding:24px;background:#fff">${body}</body></html>`,
       )
-      await screenshot(browser, htmlPath, pngPath)
+      await screenshot(browser, htmlPath, pngPath, svgPath)
       const size = fs.statSync(pngPath).size
       console.log(
         `✓ ${direction.label.padEnd(28)} ${(size / 1024).toFixed(1)}kB  ${Date.now() - started}ms`,
